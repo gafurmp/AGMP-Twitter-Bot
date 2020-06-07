@@ -163,8 +163,7 @@ def randomTweet():
       Random Quote Tweet
       '''
       startTime = datetime.today()
-      nextTweet = startTime.replace(day = startTime.day, hour = 8, minute = 56, second = 0, microsecond = 0) + timedelta(days=1)
-      #nextTweet = startTime.replace(day = startTime.day, minute = startTime.minute + 2, second = 0, microsecond = 0)
+      nextTweet = startTime.replace(day = startTime.day, hour = RANDOM_TWEET_HOUR, minute = RANDOM_TWEET_MINUTE, second = RANDOM_TWEET_SEC, microsecond = RANDOM_TWEET_MSEC) + timedelta(days=1)
       deltaTime = nextTweet - startTime
       sleepTime = deltaTime.total_seconds()
 

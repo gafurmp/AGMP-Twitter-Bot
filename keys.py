@@ -7,4 +7,4 @@ keys = dict(
 	accessTokenSecret = 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 )
 
-TWITTER_SENDER_ID = 'xxxxx' #Your twitter id
+TWITTER_SENDER_ID = 'xxxxx' #Your twitter id, not userid. eg:- 12345678, not itzme

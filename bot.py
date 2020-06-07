@@ -209,7 +209,7 @@ def replyDirectMsg():
            print("TWITTER BOT: DM ID {0} already replied.".format(response['events'][0]['id']))
      except:
        if(LOGLVL >= 0):
-          print("TWITTER BOT: Unexpected Error" + sys.exc_info()[0])
+          print("TWITTER BOT: Unexpected Error", sys.exc_info()[0])
      finally:
        if(LOGLVL >= 2):
          print("TWITTER BOT: Executed replyDirectMsg thread")

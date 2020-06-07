@@ -3,7 +3,9 @@
 Import Modules
 '''
 import sys
+import os
 import time
+from threading import Thread
 from time import sleep
 from twython import Twython
 from random import random
@@ -15,6 +17,8 @@ from twython import TwythonRateLimitError
 from twython import TwythonAuthError
 import json
 from config import *
+from datetime import datetime, timedelta
+from threading import Timer
 
 '''
 Global Constants
@@ -51,7 +55,7 @@ class MyStreamer(TwythonStreamer):
             response = bot.lookup_user(screen_name=user)
             recipient_id = response[0]['id']
 
-            if(loglvl >= 2):
+            if(LOGLVL >= 2):
               print("TWITTER BOT: recipient_id {0}".format(recipient_id))
 
             '''
@@ -78,69 +82,128 @@ class MyStreamer(TwythonStreamer):
 
             params = json.dumps(params)
 
-            if(loglvl >= 2):
+            if(LOGLVL >= 2):
               print("TWITTER BOT: Params {0}".format(params))
 
             bot.post('direct_messages/events/new', params=params)
 
-            if (loglvl >= 2):
+            if (LOGLVL >= 2):
               print("TWITTER BOT: Message  sent-  {0}".format(message))
 
     def on_error(self, status_code, data):
 
-        if (loglvl >= 0):
+        if (LOGLVL >= 0):
            print(status_filtercode)
         # Want to stop trying to get data because of the error?
         # Uncomment the next line!
         self.disconnect()
 
-def sendTweet(tStr):
-  '''
-  Function to tweet a string
-  '''
-  bot = Twython(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+def sendTweet(message):
+   '''
+   Function to tweet a string
+   '''
+   bot = Twython(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
 
-  bot.update_status(status=tStr)
-  if (loglvl >= 2):
-    print ("TWITTER BOT: Send tweet succesfully -  " + tStr)
+   bot.update_status(status=message)
+   if (LOGLVL >= 2):
+     print ("TWITTER BOT: Send tweet succesfully -  " + message)
 
+def random_line(fileName, default=None):
+    '''
+    Redds a random line from a file
+    '''
+    line = default
+    for i, randomline in enumerate(fileName, start=1):
+        if randrange(i) == 0:  # random int [0..i)
+            line = randomline
+    return line
+
+def handleTweetMentions():
+  '''
+  Thread to handle streaming interfaces - to check mentions and repkly with a direct message
+  '''
+  try:
+    '''
+    Create Stream Object
+    '''
+    if (LOGLVL >= 2):
+      print ("TWITTER BOT: Stream object created. ")
+    stream = MyStreamer(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+
+    '''
+    Check for mentions
+    '''
+    stream.statuses.filter(track='@gafurmp')
+
+  except TwythonError as err:
+    if (LOGLVL >= 0):
+      print("TWITTER BOT: Oops! Something went wrong!.  {0}".format(err))
+
+  except TwythonAuthError as err:
+    if (LOGLVL >= 0):
+      print("TWITTER BOT: Oops! Authentication failed!.  {0}".format(err))
+
+  except TwythonRateLimitError as err:
+    if (LOGLVL >= 0):
+      print("TWITTER BOT: Oops! Limit Reached!.  {0}".format(err))
+
+  except RuntimeError as err:
+    if (LOGLVL >= 0):
+      print("TWITTER BOT: Oops! Something went wrong during runtime {0}".format(err))
+
+  finally:
+    if (LOGLVL >= 2):
+       print("TWITTER BOT: handleTweetMentions executed!")
+    sleep(0.5)
+
+def randomTweet():
+  while True:
+    try:
+      '''
+      Random Quote Tweet
+      '''
+      startTime = datetime.today()
+      nextTweet = startTime.replace(day = startTime.day, hour = 8, minute = 56, second = 0, microsecond = 0) + timedelta(days=1)
+      #nextTweet = startTime.replace(day = startTime.day, minute = startTime.minute + 2, second = 0, microsecond = 0)
+      deltaTime = nextTweet - startTime
+      sleepTime = deltaTime.total_seconds()
+
+      with open(os.path.join(os.path.dirname(__file__), RANDOM_TWEET_TXT_FILE)) as file:
+        line =  random_line(file)
+        sendTweet(line)
+
+        if(LOGLVL >= 2):
+          print("TWITTER BOT: random quote at {0}: ".format(startTime) + line)
+
+    except OSError as err:
+      if(LOGLVL >= 0):
+        print("TWITTER BOT: Oops! Something went wrong! {0}".format(err))
+
+    finally:
+      if (LOGLVL >= 2):
+         print("TWITTER BOT: randomTweet send!")
+      sleep(sleepTime)
 
 def main():
   '''
   Main function
   '''
-  try:
-    randNum = randrange(100)
 
-    '''
-    Create Stream Object
-    '''
-    if (loglvl >= 2):
-      print ("TWITTER BOT: Stream object created. ")
-    stream = MyStreamer(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
-    stream.statuses.filter(track='@gafurmp')
+  '''
+  Start Threads
+  '''
+  handleTweetThread = Thread(target=handleTweetMentions)
+  handleTweetThread.start()
 
-  except TwythonError as err:
-    if (loglvl >= 0):
-      print("TWITTER BOT: Oops! Something went wrong!.  {0}".format(err))
+  randomTweetThread = Thread(target=randomTweet)
+  randomTweetThread.start()
 
-  except TwythonAuthError as err:
-    if (loglvl >= 0):
-      print("TWITTER BOT: Oops! Authentication failed!.  {0}".format(err))
-
-  except TwythonRateLimitError as err:
-    if (loglvl >= 0):
-      print("TWITTER BOT: Oops! Limit Reached!.  {0}".format(err))
-
-  except RuntimeError as err:
-    if (loglvl >= 0):
-      print("TWITTER BOT: Oops! Something went wrong during runtime {0}".format(err))
-
-  finally:
-    if (loglvl >= 2):
-       print("TWITTER BOT: main executed!")
-    sleep(0.5)
-
+  '''
+  End of execution... Join threads
+  '''
+  handleTweetThread.join()
+  randomTweetThread.join()
 
 if __name__=='__main__':
   main()
+  #done

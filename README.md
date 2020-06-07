@@ -1,5 +1,5 @@
 # AbdulsTwitterBot
-Twython based twitter bot. Currently implements direct message reply to mentions and random tweet per day at a specified time!
+Twython based twitter bot. Currently implements auto reply to all  direct message to your twitter handle and auto-favorites of all your mentions and random tweet per day at a specified time!
 
 # Configuration:
 Here is the configuration details of my twitter bot.

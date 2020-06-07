@@ -10,7 +10,7 @@ from time import sleep
 from twython import Twython
 from random import random
 from random import randrange
-from keys import keys
+from keys import *
 from twython import TwythonStreamer
 from twython import TwythonError
 from twython import TwythonRateLimitError
@@ -55,40 +55,10 @@ class MyStreamer(TwythonStreamer):
             response = bot.lookup_user(screen_name=user)
             recipient_id = response[0]['id']
 
+            bot.create_favorite(id = data['id'])
+
             if(LOGLVL >= 2):
               print("TWITTER BOT: recipient_id {0}".format(recipient_id))
-
-            '''
-            Define message
-            '''
-            message = "Hi, This is an automated reply dated " + data['created_at'] + ". I will get back to you asap!"
-
-            '''
-            Set Params
-            '''
-            params = {
-              "event": {
-                  "type": "message_create",
-                  "message_create": {
-                      "target": {
-                      "recipient_id": str(recipient_id),
-                      },
-                      "message_data": {
-                           "text": message,
-                      }
-                  }
-              }
-            }
-
-            params = json.dumps(params)
-
-            if(LOGLVL >= 2):
-              print("TWITTER BOT: Params {0}".format(params))
-
-            bot.post('direct_messages/events/new', params=params)
-
-            if (LOGLVL >= 2):
-              print("TWITTER BOT: Message  sent-  {0}".format(message))
 
     def on_error(self, status_code, data):
 
@@ -157,19 +127,20 @@ def handleTweetMentions():
     sleep(0.5)
 
 def randomTweet():
+
   while True:
     try:
       '''
       Random Quote Tweet
       '''
       startTime = datetime.today()
-      nextTweet = startTime.replace(day = startTime.day, hour = RANDOM_TWEET_HOUR, minute = RANDOM_TWEET_MINUTE, second = RANDOM_TWEET_SEC, microsecond = RANDOM_TWEET_MSEC) + timedelta(days=1)
+      nextTweet = startTime.replace(day = startTime.day, hour = RANDOM_TWEET_HOUR, minute = RANDOM_TWEET_MINUTE, second = RANDOM_TWEET_SEC, microsecond = RANDOM_TWEET_MSEC) + timedelta(days=RANDOM_TWEET_DAYS)
       deltaTime = nextTweet - startTime
       sleepTime = deltaTime.total_seconds()
 
       with open(os.path.join(os.path.dirname(__file__), RANDOM_TWEET_TXT_FILE)) as file:
         line =  random_line(file)
-        sendTweet(line)
+        #sendTweet(line)
 
         if(LOGLVL >= 2):
           print("TWITTER BOT: random quote at {0}: ".format(startTime) + line)
@@ -182,6 +153,67 @@ def randomTweet():
       if (LOGLVL >= 2):
          print("TWITTER BOT: randomTweet send!")
       sleep(sleepTime)
+
+def createDirMsgAndSent(message, recipient_id):
+  '''
+  Function creates and send a direct message
+  '''
+  bot = Twython(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+
+  '''
+  Set Params
+  '''
+  params = {
+    "event": {
+       "type": "message_create",
+       "message_create": {
+         "target": {
+           "recipient_id": str(recipient_id),
+           },
+         "message_data": {
+            "text": message,
+            }
+         }
+       }
+  }
+
+  params = json.dumps(params)
+
+  if(LOGLVL >= 2):
+    print("TWITTER BOT: Params {0}".format(params))
+
+  bot.post('direct_messages/events/new', params=params)
+
+  if (LOGLVL >= 2):
+    print("TWITTER BOT: Message  sent-  {0}".format(message))
+
+def replyDirectMsg():
+   '''
+   Reply to incoming direct messages
+   '''
+   id = []
+   bot = Twython(CONSUMER_KEY, CONSUMER_SECRET, ACCESS_TOKEN, ACCESS_TOKEN_SECRET)
+
+   while True:
+     try:
+       response = bot.get_direct_messages(count = 1)
+       if (response['events'][0]['id'] not in id):
+         if(response['events'][0]['message_create']['sender_id'] != TWITTER_SENDER_ID):
+           if(LOGLVL >= 2):
+             print("TWITTER BOT: DM response {0}".format(response))
+           id.append(response['events'][0]['id'])
+           message = "Hi, This is an automated reply dated. I will get back to you asap!"
+           createDirMsgAndSent(message, response['events'][0]['message_create']['sender_id'])
+       else:
+         if(LOGLVL >= 2):
+           print("TWITTER BOT: DM ID {0} already replied.".format(response['events'][0]['id']))
+     except:
+       if(LOGLVL >= 0):
+          print("TWITTER BOT: Unexpected Error" + sys.exc_info()[0])
+     finally:
+       if(LOGLVL >= 2):
+         print("TWITTER BOT: Executed replyDirectMsg thread")
+       sleep(DM_POLL_FREQ_IN_HOUR * 60 * 60)
 
 def main():
   '''
@@ -197,11 +229,15 @@ def main():
   randomTweetThread = Thread(target=randomTweet)
   randomTweetThread.start()
 
+  replyDirMsgThread = Thread(target=replyDirectMsg)
+  replyDirMsgThread.start()
+
   '''
   End of execution... Join threads
   '''
   handleTweetThread.join()
   randomTweetThread.join()
+  replyDirMsgThread.join()
 
 if __name__=='__main__':
   main()

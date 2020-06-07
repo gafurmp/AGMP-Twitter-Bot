@@ -140,7 +140,7 @@ def randomTweet():
 
       with open(os.path.join(os.path.dirname(__file__), RANDOM_TWEET_TXT_FILE)) as file:
         line =  random_line(file)
-        #sendTweet(line)
+        sendTweet(line)
 
         if(LOGLVL >= 2):
           print("TWITTER BOT: random quote at {0}: ".format(startTime) + line)

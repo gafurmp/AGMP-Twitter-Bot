@@ -11,5 +11,5 @@ INFO = 2
 '''
 Parameters
 '''
-loglvl = INFO
-
+LOGLVL = INFO
+RANDOM_TWEET_TXT_FILE = 'QuranQ.txt' # Your random tweet text file, one quote/ info per line formatting!

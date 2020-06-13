@@ -1,4 +1,4 @@
-# AbdulsTwitterBot
+# AGMP TwitterBot
 Twython based twitter bot. Currently implements auto reply to all  direct message to your twitter handle and auto-favorites of all your mentions and random tweet per day at a specified time!
 
 # Configuration:
